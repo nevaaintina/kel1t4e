@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberHash - SHA-256 Guard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .cyber-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        .glow-emerald:focus {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-[#020617] text-slate-200 min-h-screen">
+    
+    <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-20">
+        <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-900 rounded-full blur-[120px]"></div>
+        <div class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-900 rounded-full blur-[120px]"></div>
+    </div>
+
+    <div class="relative max-w-6xl mx-auto px-6 py-12">
+        <header class="flex flex-col items-center mb-16">
+            <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl mb-4">
+                <i data-lucide="terminal" class="w-8 h-8 text-emerald-400"></i>
+            </div>
+            <h1 class="text-4xl font-extrabold tracking-tighter text-white">
+                CYBER<span class="text-emerald-400">HASH</span>_
+            </h1>
+            <p class="text-slate-400 mt-2 font-medium">Advanced SHA-256 Hashing System v1.0</p>
+        </header>
+
+        <div class="grid lg:grid-cols-2 gap-8">
+            
+            <section class="cyber-card p-8 rounded-3xl shadow-2xl">
+                <div class="flex items-center space-x-3 mb-8">
+                    <i data-lucide="fingerprint" class="text-emerald-400 w-6 h-6"></i>
+                    <h2 class="text-xl font-bold text-white uppercase tracking-wider">Input Encryption</h2>
+                </div>
+
+                <form method="POST" class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2 tracking-widest">Plaintext Input</label>
+                        <input type="text" id="passwordInput" name="text_to_hash" 
+                               class="w-full bg-slate-900/50 border border-slate-700 p-4 rounded-xl text-white outline-none focus:border-emerald-500 glow-emerald transition-all" 
+                               placeholder="Enter data to encrypt..." required>
+                        
+                        <div class="mt-4">
+                            <div class="flex justify-between items-center mb-1">
+                                <span id="strengthText" class="text-[10px] uppercase font-bold text-slate-500 italic">Waiting...</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1">
+                                <div id="strengthBar" class="bg-slate-700 h-1 rounded-full transition-all duration-700" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" name="generate" 
+                            class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 rounded-xl uppercase tracking-tighter transition-all hover:scale-[1.01] active:scale-[0.98] shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                        Execute Hashing
+                    </button>
+                </form>
+
+                {% if generated_hash %}
+                <div class="mt-8 space-y-4 animate-in fade-in zoom-in duration-300">
+                    <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700 group">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">System Salt (HEX)</span>
+                            <button onclick="copyToClipboard('saltVal')" class="text-slate-500 hover:text-white transition">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <code id="saltVal" class="mono text-sm break-all text-slate-300">{{ generated_salt }}</code>
+                    </div>
+
+                    <div class="p-4 bg-slate-900/80 rounded-xl border border-emerald-500/30">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-bold text-emerald-500 tracking-widest uppercase">SHA-256 Digest</span>
+                            <button onclick="copyToClipboard('hashVal')" class="text-slate-500 hover:text-white transition">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <code id="hashVal" class="mono text-sm break-all text-emerald-400">{{ generated_hash }}</code>
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+
+            <section class="cyber-card p-8 rounded-3xl shadow-2xl">
+                <div class="flex items-center space-x-3 mb-8">
+                    <i data-lucide="shield-check" class="text-blue-400 w-6 h-6"></i>
+                    <h2 class="text-xl font-bold text-white uppercase tracking-wider">Integrity Check</h2>
+                </div>
+
+                <form method="POST" class="space-y-4">
+                    <input type="text" name="hash_to_verify" 
+                           class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-xl text-xs mono text-slate-400 outline-none focus:border-blue-500" 
+                           placeholder="Paste Target Hash..." required>
+                    
+                    <input type="text" name="salt_to_verify" 
+                           class="w-full bg-slate-900/50 border border-slate-700 p-3 rounded-xl text-xs mono text-slate-400 outline-none focus:border-blue-500" 
+                           placeholder="Paste System Salt..." required>
+
+                    <input type="text" name="original_text" 
+                           class="w-full bg-slate-900/50 border border-slate-700 p-4 rounded-xl text-white outline-none focus:border-blue-500" 
+                           placeholder="Enter Original Text..." required>
+
+                    <button type="submit" name="verify" 
+                            class="w-full border border-blue-500/50 text-blue-400 hover:bg-blue-500/10 font-bold py-4 rounded-xl uppercase tracking-widest transition-all">
+                        Validate Integrity
+                    </button>
+                </form>
+
+                {% if verify_result %}
+                    <div class="mt-6 p-4 rounded-xl border flex items-center shadow-lg transition-all animate-pulse
+                        {% if verify_result == 'Match' %} border-emerald-500/50 bg-emerald-500/10 text-emerald-400 {% else %} border-red-500/50 bg-red-500/10 text-red-400 {% endif %}">
+                        <i data-lucide="{% if verify_result == 'Match' %}shield-check{% else %}shield-alert{% endif %}" class="mr-3"></i>
+                        <span class="font-bold uppercase tracking-tight">System Status: {{ verify_result }}</span>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+
+        <footer class="mt-12 text-center text-slate-600 text-[10px] tracking-[0.3em] uppercase">
+            &copy; 2026 CyberHash Systems // Encrypted Data Stream // Secure Environment
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const passwordInput = document.getElementById('passwordInput');
+        const strengthBar = document.getElementById('strengthBar');
+        const strengthText = document.getElementById('strengthText');
+
+        passwordInput.addEventListener('input', function() {
+            const val = this.value;
+            let strength = 0;
+            if (val.length > 0) strength += 10;
+            if (val.length > 8) strength += 20;
+            if (/[A-Z]/.test(val)) strength += 25;
+            if (/[0-9]/.test(val)) strength += 20;
+            if (/[^A-Za-z0-9]/.test(val)) strength += 25;
+
+            strengthBar.style.width = strength + '%';
+            
+            if (strength < 40) {
+                strengthBar.style.backgroundColor = '#ef4444'; // Red
+                strengthText.innerText = "Status: Vulnerable";
+                strengthText.style.color = '#ef4444';
+            } else if (strength < 80) {
+                strengthBar.style.backgroundColor = '#fbbf24'; // Yellow
+                strengthText.innerText = "Status: Moderate";
+                strengthText.style.color = '#fbbf24';
+            } else {
+                strengthBar.style.backgroundColor = '#10b981'; // Emerald
+                strengthText.innerText = "Status: Encrypted & Secure";
+                strengthText.style.color = '#10b981';
+            }
+        });
+
+        function copyToClipboard(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Data copied to system clipboard.');
+            });
+        }
+    </script>
+</body>
+</html>
