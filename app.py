@@ -1,69 +1,70 @@
 from flask import Flask, render_template, request
 import hashlib
 import os
+import re
+import time
 
 app = Flask(__name__)
 
-# Fungsi Inti: Hashing SHA-256 dengan mekanisme Salt
-# Sesuai prinsip One-Way Function: hasil hash tidak bisa dikembalikan ke teks asli
-def hash_password(password, salt=None):
-    if salt is None:
-        # Generate salt acak 16 byte (32 karakter hex) 
-        # Peran Salt: Menghindari serangan Rainbow Table dengan membuat hash unik
-        salt = os.urandom(16).hex()
+# Fitur 5: Input Sanitization
+def sanitize_input(text):
+    return re.sub(r'[^\w\s]', '', text)
+
+# Fitur 4: Multi-SHA dengan Custom Rounds (Iterasi)
+def hash_with_rounds(password, salt, algo='sha256', rounds=1):
+    data = (salt + password).encode()
     
-    # Gabungkan salt dan password sebelum di-hash
-    # Urutan: SALT + PASSWORD
-    salted_password = salt + password
+    # Pilih fungsi hash dari hashlib
+    hash_func = getattr(hashlib, algo)
     
-    # Proses Hashing menggunakan algoritma SHA-256
-    hash_obj = hashlib.sha256(salted_password.encode())
-    hashed_result = hash_obj.hexdigest()
-    
-    return hashed_result, salt
+    # Melakukan iterasi sebanyak jumlah rounds (Fitur Baru)
+    current_hash = hash_func(data).digest()
+    for _ in range(rounds - 1):
+        current_hash = hash_func(current_hash).digest()
+        
+    return current_hash.hex()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    generated_hash = None
-    generated_salt = None
+    gen_hash = None
+    gen_salt = None
+    gen_algo = 'sha256'
+    gen_rounds = 10
+    exec_time = 0
     verify_result = None
-    input_text = ""
+    
+    prev = {'hash': '', 'salt': '', 'orig': '', 'algo': 'sha256'}
 
     if request.method == 'POST':
-        # --- LOGIKA TOMBOL GENERATE ---
         if 'generate' in request.form:
-            # Mengambil input dan membersihkan spasi liar di ujung teks
-            input_text = (request.form.get('text_to_hash') or "").strip()
-            if input_text:
-                generated_hash, generated_salt = hash_password(input_text)
-
-        # --- LOGIKA TOMBOL VERIFY ---
-        elif 'verify' in request.form:
-            # Mengambil data dari form verifikasi
-            # Gunakan .strip() pada semua input untuk memastikan tidak ada spasi/newline yang terbawa
-            provided_hash = (request.form.get('hash_to_verify') or "").strip()
-            provided_salt = (request.form.get('salt_to_verify') or "").strip()
-            original_text = (request.form.get('original_text') or "").strip()
+            start_time = time.time()
+            raw_input = request.form.get('text_to_hash', '').strip()
+            gen_algo = request.form.get('algo_selection', 'sha256')
+            gen_rounds = int(request.form.get('rounds_selection', 10))
+            clean_input = sanitize_input(raw_input)
             
-            if original_text and provided_salt:
-                # Lakukan hashing ulang pada teks asli dengan salt yang diberikan
-                check_hash, _ = hash_password(original_text, provided_salt)
-                
-                # Bandingkan hasil hash baru dengan hash yang di-paste user
-                if check_hash.lower() == provided_hash.lower():
-                    verify_result = "Match"
-                else:
-                    verify_result = "Not Match"
-            else:
-                # Jika ada kolom yang kosong saat verifikasi
-                verify_result = "Not Match"
+            if clean_input:
+                gen_salt = os.urandom(16).hex()
+                gen_hash = hash_with_rounds(clean_input, gen_salt, gen_algo, gen_rounds)
+                exec_time = round((time.time() - start_time) * 1000, 2) # Dalam milidetik
+
+        elif 'verify' in request.form:
+            v_hash = request.form.get('hash_to_verify', '').strip()
+            v_salt = request.form.get('salt_to_verify', '').strip()
+            v_orig = sanitize_input(request.form.get('original_text', '').strip())
+            v_algo = request.form.get('algo_verify_selection', 'sha256')
+            v_rounds = int(request.form.get('v_rounds_hidden', 10))
+            
+            prev = {'hash': v_hash, 'salt': v_salt, 'orig': v_orig, 'algo': v_algo}
+
+            if v_orig and v_salt:
+                check = hash_with_rounds(v_orig, v_salt, v_algo, v_rounds)
+                verify_result = "Match" if check.lower() == v_hash.lower() else "Not Match"
 
     return render_template('index.html', 
-                           generated_hash=generated_hash, 
-                           generated_salt=generated_salt,
-                           verify_result=verify_result,
-                           input_text=input_text)
+                           gen_hash=gen_hash, gen_salt=gen_salt, 
+                           gen_algo=gen_algo, gen_rounds=gen_rounds,
+                           exec_time=exec_time, res=verify_result, prev=prev)
 
 if __name__ == '__main__':
-    # Menjalankan server Flask dalam mode debug agar mudah memantau error
     app.run(debug=True)
