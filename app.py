@@ -66,5 +66,8 @@ def index():
                            gen_algo=gen_algo, gen_rounds=gen_rounds,
                            exec_time=exec_time, res=verify_result, prev=prev)
 
+
+app = app 
+
 if __name__ == '__main__':
     app.run(debug=True)
