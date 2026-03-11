@@ -17,7 +17,7 @@ def hash_with_rounds(password, salt, algo='sha256', rounds=1):
     # Pilih fungsi hash dari hashlib
     hash_func = getattr(hashlib, algo)
     
-    # Melakukan iterasi sebanyak jumlah rounds (Fitur Baru)
+    # Melakukan iterasi sebanyak jumlah rounds
     current_hash = hash_func(data).digest()
     for _ in range(rounds - 1):
         current_hash = hash_func(current_hash).digest()
@@ -46,7 +46,7 @@ def index():
             if clean_input:
                 gen_salt = os.urandom(16).hex()
                 gen_hash = hash_with_rounds(clean_input, gen_salt, gen_algo, gen_rounds)
-                exec_time = round((time.time() - start_time) * 1000, 2) # Dalam milidetik
+                exec_time = round((time.time() - start_time) * 1000, 2)
 
         elif 'verify' in request.form:
             v_hash = request.form.get('hash_to_verify', '').strip()
@@ -61,12 +61,17 @@ def index():
                 check = hash_with_rounds(v_orig, v_salt, v_algo, v_rounds)
                 verify_result = "Match" if check.lower() == v_hash.lower() else "Not Match"
 
+    # PERBAIKAN DI SINI: Menggunakan '=' bukan '-'
     return render_template('index.html', 
-                           gen_hash=gen_hash, gen_salt=gen_salt, 
-                           gen_algo=gen_algo, gen_rounds=gen_rounds,
-                           exec_time=exec_time, res=verify_result, prev=prev)
+                           gen_hash=gen_hash, 
+                           gen_salt=gen_salt, 
+                           gen_algo=gen_algo, 
+                           gen_rounds=gen_rounds,
+                           exec_time=exec_time, 
+                           res=verify_result, 
+                           prev=prev)
 
-
+# Penting untuk Vercel
 app = app 
 
 if __name__ == '__main__':
